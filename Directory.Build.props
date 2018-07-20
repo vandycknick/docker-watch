@@ -1,0 +1,34 @@
+<Project>
+
+  <Import Project="Version.props" />
+
+  <PropertyGroup>
+    <Authors>Nick Van Dyck</Authors>
+    <Product>dotnet-watch</Product>
+    <Description>Watch for docker volume changes and reflect those changes inside the container.</Description>
+    <Copyright>Copyright © Nick Van Dyck</Copyright>
+    <NeutralLanguage>en-UK</NeutralLanguage>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/nickvdyck/docker-watch</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nickvdyck/docker-watch.git</RepositoryUrl>
+    <PackageReleaseNotes>See $(PackageProjectUrl)/blob/master/CHANGELOG.md#v$(VersionPrefix) for release notes.</PackageReleaseNotes>
+    <RepositoryType>git</RepositoryType>
+    <IsPackable>false</IsPackable>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <LangVersion>Latest</LangVersion>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <GenerateFullPaths Condition="'$(VSCODE_PID)' != ''">true</GenerateFullPaths>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).build/obj/$(MSBuildProjectName)</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory).build/bin/$(MSBuildProjectName)</BaseOutputPath>
+
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' == 'Unix'">
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).build/obj/unix/$(MSBuildProjectName)</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory).build/bin/unix/$(MSBuildProjectName)</BaseOutputPath>
+  </PropertyGroup>
+
+</Project>
