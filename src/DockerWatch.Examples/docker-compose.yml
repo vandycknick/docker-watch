@@ -1,0 +1,10 @@
+version: '3.6'
+services:
+  web:
+    build: .
+    command: npm start
+    ports:
+    - "5000:8080"
+    volumes:
+    - ./server:/app/server
+    - ./info.txt:/app/info.txt
