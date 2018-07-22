@@ -3,8 +3,8 @@
 param(
     [ValidateSet('Debug', 'Release')]
     $Configuration = $null,
-	[switch]
-	$IsOfficialBuild
+    [switch]
+    $IsOfficialBuild
 )
 
 Set-StrictMode -Version 1
@@ -46,8 +46,5 @@ exec dotnet pack `
 
 exec dotnet publish `
     -r win-x64 @MSBuildArgs
-
-exec dotnet publish `
-    -r osx-x64 @MSBuildArgs
 
 Write-Host 'Done' -ForegroundColor Magenta

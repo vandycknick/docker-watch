@@ -3,11 +3,11 @@
 param(
     [ValidateSet('Debug', 'Release')]
     $Configuration = $null,
-	[switch]
-	$IsOfficialBuild
+    [switch]
+    $IsOfficialBuild
 )
 
-Add-Type -assembly "system.io.compression.filesystem"
+Add-Type -assembly "System.IO.Compression.FileSystem"
 
 #
 # Main
@@ -17,16 +17,22 @@ if (!$Configuration) {
 }
 
 $rids = @(
-    "win-x64",
-    "osx-x64"
+    "win-x64"
 )
 
 [xml]$manifest = Get-Content "$PSScriptRoot/../Version.props"
 $version = "$($manifest.Project.PropertyGroup.VersionPrefix)"
 
+$path = (Get-Location).Path
+
+if ((Test-Path -Path "$path/artifacts") -ne $True)
+{
+    Write-Host "Artifacts folder does not exist, creating it now ..." -ForegroundColor Cyan
+    New-Item "$path/artifacts" -ItemType Directory | Out-Null
+}
+
 foreach($id in $rids)
 {
-    $path = (Get-Location).Path
     $zipFile = "$path/artifacts/docker-watch.$id.$version.zip" 
 
     try
@@ -37,9 +43,9 @@ foreach($id in $rids)
             Write-Host "Artifact '$zipfile' already exists, removing ..." -ForegroundColor Cyan
             Remove-Item -Path $zipFile
         }
-    
+
         Write-Host "Creating $zipFile" -ForegroundColor Cyan
-    
+
         [System.IO.Compression.ZipFile]::CreateFromDirectory(
             "$path/.build/bin/DockerWatch/$Configuration/netcoreapp2.1/$id/publish",
             $zipFile
