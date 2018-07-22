@@ -22,14 +22,28 @@ namespace DockerWatch
                 "stat", "-c", "%a", pathChanged
             };
 
+            string permissions = "";
+
             using (var stream = await _DockerService.Exec(containerId, stat))
             using (StreamReader reader = new StreamReader(stream))
             {
-                String text = await reader.ReadToEndAsync();
-                Console.WriteLine(text);
-                // return Task.CompletedTask;
+                var text = await reader.ReadToEndAsync();
+
+                permissions = text.Trim();
+                Console.WriteLine($"From stat: {permissions}");
             }
-            Console.WriteLine("notified contianer");
+            
+            var chmod = new string[]
+            {
+                "chmod", permissions, pathChanged
+            };
+
+            using(var stream = await _DockerService.Exec(containerId, chmod))
+            using(var reader = new StreamReader(stream))
+            {
+                var response = await reader.ReadToEndAsync();
+                Console.WriteLine($"From chmod: {response}");
+            }
         }
     }
 }

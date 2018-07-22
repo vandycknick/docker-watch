@@ -1,5 +1,7 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace DockerWatch
 {
@@ -7,13 +9,20 @@ namespace DockerWatch
     {
         static async Task Main(string[] args)
         {
-            var docker = new DockerService();
-            var notify = new NotifierAction(docker);
-            var monitor = new ContainerMonitor(docker, notify);
+            var host = new HostBuilder()
+                .UseConsoleLifetime()
+                .ConfigureServices((context, services) =>
+                {
+                    services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
 
-            await monitor.Start();
-            await Task.Delay(30000);
-            Console.WriteLine("Done!");
+                    services.AddHostedService<ContainerMonitorHost>();
+
+                    services.AddSingleton<INotifierAction, NotifierAction>();
+                    services.AddSingleton<DockerService>();
+                })
+                .Build();
+
+            await host.RunAsync();
         }
     }
 }

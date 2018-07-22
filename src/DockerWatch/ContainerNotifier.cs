@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace DockerWatch
 {
-    public class ContainerNotifier
+    public class ContainerNotifier : IDisposable
     {
         private FileSystemWatcher _Watcher;
 
@@ -49,9 +49,9 @@ namespace DockerWatch
             return $"{ContainerPath}{relativePath}";
         }
 
-        private void OnFileChanged(object sender, FileSystemEventArgs e)
+        private async void OnFileChanged(object sender, FileSystemEventArgs e)
         {
-            _Notify.Notify(ContainerID, GetDockerPath(e.FullPath));
+            await _Notify.Notify(ContainerID, GetDockerPath(e.FullPath));
         }
 
         private void WatchForVolumeChanges()
@@ -84,6 +84,16 @@ namespace DockerWatch
             _Watcher.NotifyFilter = NotifyFilters.LastWrite;
             _Watcher.Changed += OnFileChanged;
             _Watcher.EnableRaisingEvents = true;
+        }
+        public void Dispose()
+        {
+            if (_Watcher != null)
+            {
+                _Watcher.EnableRaisingEvents = false;
+                _Watcher.Changed -= OnFileChanged;
+                _Watcher.Dispose();
+                _Watcher = null;
+            }
         }
     }
 }
