@@ -1,22 +1,25 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace DockerWatch
 {
     public class NotifierAction : INotifierAction
     {
-        private readonly DockerService _DockerService;
+        private readonly DockerService _dockerService;
+        private readonly ILogger _logger;
 
-        public NotifierAction(DockerService dockerService)
+        public NotifierAction(DockerService dockerService, ILogger<NotifierAction> logger)
         {
-            _DockerService = dockerService;
+            _dockerService = dockerService;
+            _logger = logger;
         }
 
-        public async Task Notify(string containerId, string pathChanged)
+        public async Task Notify(string containerID, string pathChanged)
         {
-            Console.WriteLine(pathChanged);
-
+            _logger.LogTrace($"Syncing change for {pathChanged} inside container ({containerID}.");
+           
             var stat = new string[]
             {
                 "stat", "-c", "%a", pathChanged
@@ -24,13 +27,13 @@ namespace DockerWatch
 
             string permissions = "";
 
-            using (var stream = await _DockerService.Exec(containerId, stat))
+            using (var stream = await _dockerService.Exec(containerID, stat))
             using (StreamReader reader = new StreamReader(stream))
             {
                 var text = await reader.ReadToEndAsync();
 
                 permissions = text.Trim();
-                Console.WriteLine($"From stat: {permissions}");
+                _logger.LogTrace($"From stat: {permissions}");
             }
             
             var chmod = new string[]
@@ -38,11 +41,11 @@ namespace DockerWatch
                 "chmod", permissions, pathChanged
             };
 
-            using(var stream = await _DockerService.Exec(containerId, chmod))
+            using(var stream = await _dockerService.Exec(containerID, chmod))
             using(var reader = new StreamReader(stream))
             {
                 var response = await reader.ReadToEndAsync();
-                Console.WriteLine($"From chmod: {response}");
+                _logger.LogTrace($"From chmod: {response}");
             }
         }
     }

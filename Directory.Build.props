@@ -5,7 +5,7 @@
   <PropertyGroup>
     <Authors>Nick Van Dyck</Authors>
     <Product>dotnet-watch</Product>
-    <Description>Watch for docker volume changes and reflect those changes inside the container.</Description>
+    <Description>A command line utiltiy to notify docker mounted volumes about changes on Windows.</Description>
     <Copyright>Copyright © Nick Van Dyck</Copyright>
     <NeutralLanguage>en-UK</NeutralLanguage>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
