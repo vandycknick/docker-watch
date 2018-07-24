@@ -108,7 +108,6 @@ namespace DockerWatch
             return cont.FirstOrDefault();
         }
 
-        // public void MonitorContainerEvents(Action<ContainerMonitorEvent> onContainerEvent)
         public ContainerEventsMonitor MonitorContainerEvents()
         {
             var monitor = new ContainerEventsMonitor();
@@ -137,7 +136,6 @@ namespace DockerWatch
                 { "die", true},
             });
 
-
             var eventParams = new ContainerEventsParameters()
             {
                 Filters = filters,
@@ -148,14 +146,28 @@ namespace DockerWatch
             return monitor;
         }
 
-        public async Task<MemoryStream> Exec(string containerID, string[] cmd)
+        public struct ContainerProcessResult : IDisposable
         {
-            MemoryStream output = new MemoryStream();
+            public MemoryStream Stdout { get; set; }
+            public MemoryStream Stderr { get; set; }
+            public short ExitCode { get; set; }
+
+            public void Dispose()
+            {
+                Stdout.Dispose();
+                Stderr.Dispose();
+            }
+        }
+
+        public async Task<ContainerProcessResult> Exec(string containerID, string[] cmd)
+        {
+            var stdout = new MemoryStream();
+            var stderr = new MemoryStream();
 
             var response = await _Client.Containers.ExecCreateContainerAsync(
                     id: containerID,
                     parameters: new ContainerExecCreateParameters {
-                        AttachStderr = false,
+                        AttachStderr = true,
                         AttachStdin = false,
                         AttachStdout = true,
                         Cmd = cmd,
@@ -172,12 +184,18 @@ namespace DockerWatch
                 cancellationToken: default(CancellationToken)
             ))
             {
-                await stream.CopyOutputToAsync(null, output, null, default(CancellationToken));
+                await stream.CopyOutputToAsync(null, stdout, stderr, default(CancellationToken));
             }
 
-            output.Position = 0;
+            stdout.Position = 0;
+            stderr.Position = 0;
 
-            return output;
+            return new ContainerProcessResult()
+            {
+                Stdout = stdout,
+                Stderr = stderr,
+                ExitCode = (short)(stderr.Length > 0 ? 1 : 0)
+            };
         }
     }
 }
