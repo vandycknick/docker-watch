@@ -9,6 +9,7 @@ namespace DockerWatch
     {
         private readonly DockerService _dockerService;
         private readonly ILogger _logger;
+        const string SYNC_FILE_CMD = "chmod $(stat -c %a {0}) {0}";
 
         public NotifierAction(DockerService dockerService, ILogger<NotifierAction> logger)
         {
@@ -20,27 +21,12 @@ namespace DockerWatch
         {
             _logger.LogTrace($"Syncing change for {pathChanged} inside container ({containerID}.");
 
-            string permissions = "";
-
-            var stat = new string[] { "stat", "-c", "%a", pathChanged };
-            using(var statResult = await _dockerService.Exec(containerID, stat))
+            var cmd = new string[] { "sh", "-c", String.Format(SYNC_FILE_CMD, pathChanged) };
+            using(var result = await _dockerService.Exec(containerID, cmd))
             {
-                if (statResult.ExitCode == 1)
-                {
-                    await LogError(containerID, pathChanged, statResult.Stderr);
-                    return;
-                }
-
-                permissions = await GetStreamResult(statResult.Stdout);
+                if (result.ExitCode == 1)
+                    await LogError(containerID, pathChanged, result.Stderr);
             }
-
-            var chmod = new string[] { "chmod", permissions, pathChanged };
-            using(var chmodResult = await _dockerService.Exec(containerID, chmod))
-            {
-                if (chmodResult.ExitCode == 1)
-                    await LogError(containerID, pathChanged, chmodResult.Stderr);
-            }
-
         }
 
         private async Task<string> GetStreamResult(MemoryStream stream)

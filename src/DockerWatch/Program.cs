@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DockerWatch
 {
-    [Command(Name = "docker-watch", FullName = "docker-watch", Description = "Watch for changes on mounted volumes and replay in the container so that watchers get executed.")]
+    [Command(Name = "docker-watch", FullName = "docker-watch", Description = "Notify docker containers about changes in mounted volumes.")]
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     [HelpOption]
     class Program
