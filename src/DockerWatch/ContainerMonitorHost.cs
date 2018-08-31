@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using DockerWatch.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,14 +16,20 @@ namespace DockerWatch
 
         private readonly DockerService _dockerService;
         private readonly IContainerNotifierFactory _containerNotifierFactory;
+        private readonly ContainerMonitorHostOptions _options;
         private readonly ILogger _logger;
 
         private Dictionary<string, List<ContainerNotifier>> _containerNotifiers;
         private ContainerEventsMonitor _monitor;
-        public ContainerMonitorHost(DockerService dockerService, IContainerNotifierFactory containerNotifierFactory, ILogger<ContainerMonitorHost> logger)
+        public ContainerMonitorHost(
+            DockerService dockerService,
+            IContainerNotifierFactory containerNotifierFactory,
+            ContainerMonitorHostOptions options,
+            ILogger<ContainerMonitorHost> logger)
         {
             _dockerService = dockerService;
             _containerNotifierFactory = containerNotifierFactory;
+            _options = options;
             _logger = logger;
 
             _containerNotifiers = new Dictionary<string, List<ContainerNotifier>>();
@@ -38,9 +45,10 @@ namespace DockerWatch
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting monitor.");
-            var containers = await _dockerService.GetRunningContainers();
+            var result = await _dockerService.GetRunningContainers();
+            var containers = result.Where(c => c.Name.MatchesGlob(_options.ContainerGlob)).ToList();
 
-            _logger.LogTrace($"Found {containers.Count} running container{(containers.Count > 1 ? "s" : "")}.");
+            _logger.LogTrace($"Found {containers.Count} running container{(containers.Count > 1 ? "s" : "")} matching glob '{_options.ContainerGlob}'.");
 
             foreach (var container in containers)
             {
@@ -114,9 +122,16 @@ namespace DockerWatch
 
         public void AttachNotifiersForContainer(Container container)
         {
-            var n = new List<ContainerNotifier>();
+            if(!container.Name.MatchesGlob(_options.ContainerGlob))
+            {
+                _logger.LogTrace($"Container '{container.Name}' does not match '{_options.ContainerGlob}', no notifiers registered!");
+                return;
+            }
 
-            foreach (var mount in container.Mounts)
+            var n = new List<ContainerNotifier>();
+            var mounts = container.Mounts.Where(m => !String.IsNullOrEmpty(m.Source));
+
+            foreach (var mount in mounts)
             {
                 var hostPath = ToWindowsPath(mount.Source);
                 try
@@ -131,13 +146,21 @@ namespace DockerWatch
                 }
             }
 
-            _containerNotifiers.Add(container.ID, n);
-            _logger.LogInformation($"Registered notifiers for all mounted volumes in '{container.Name}'.");
+            if (mounts.Count() > 0)
+            {
+                _containerNotifiers.Add(container.ID, n);
+                _logger.LogInformation($"Registered notifiers for all mounted volumes in '{container.Name}'.");
+            }
+            else
+            {
+                _logger.LogTrace($"No windows mounted volumes found for '{container.Name}'");
+            }
+
         }
 
         public void Dispose()
         {
-            _monitor.Dispose();
+            _monitor?.Dispose();
         }
     }
 }

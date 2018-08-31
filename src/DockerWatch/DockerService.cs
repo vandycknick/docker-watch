@@ -55,7 +55,7 @@ namespace DockerWatch
     }
 
     public class DockerService
-    {   
+    {
         const string DOCKER_URI = "npipe://./pipe/docker_engine";
 
         private readonly DockerClient _Client;
@@ -66,7 +66,7 @@ namespace DockerWatch
                             .CreateClient();
         }
 
-        public async Task<IList<Container>> GetRunningContainers()
+        public async Task<IEnumerable<Container>> GetRunningContainers()
         {
             var running = (
                 from container in await GetAllContainers()
@@ -79,7 +79,7 @@ namespace DockerWatch
                 }
             );
 
-            return running.ToList();
+            return running;
         }
 
         private Task<IList<ContainerListResponse>> GetAllContainers()

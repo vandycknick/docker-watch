@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
@@ -16,6 +15,9 @@ namespace DockerWatch
         [Option(Description = "Enable more verbose and rich logging.", ShortName = "v")]
         public bool Verbose { get; set; } = false;
 
+        [Option(Description = "", ShortName = "c")]
+        public string Container { get; set; } = "*";
+
         public IHostBuilder CreateContainerMonitorHostBuilder()
         {
             var host = new HostBuilder()
@@ -31,6 +33,9 @@ namespace DockerWatch
 
                     services.AddHostedService<ContainerMonitorHost>();
 
+                    services.AddSingleton<ContainerMonitorHostOptions>(_ => new ContainerMonitorHostOptions {
+                        ContainerGlob = Container,
+                    });
                     services.AddSingleton<IContainerNotifierFactory, ContainerNotifierFactory>();
                     services.AddSingleton<INotifierAction, NotifierAction>();
                     services.AddSingleton<DockerService>();
