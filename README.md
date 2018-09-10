@@ -31,7 +31,7 @@ Or use the following when upgrading from a previous version:
 dotnet tool update --global docker-watch
 ```
 
-It requires `sh`, `stat` and `chmod to already be installed inside a container. This
+It requires `sh`, `stat` and `chmod` to already be installed inside a container. This
 should be the case for most linux containers e.g. (ubuntu, debian, alpine, ...).
 
 ## Usage
@@ -42,13 +42,14 @@ It also sets up listeners for container start and stop events so that monitors w
 docker-watch
 ```
 
-```sh
+```
 Notify docker containers about changes in mounted volumes.
 
 Usage: docker-watch [options]
 
 Options:
-  --version     Show version information
-  -?|-h|--help  Show help information
-  -v|--verbose  Enable more verbose and rich logging.
+  --version                   Show version information
+  -?|-h|--help                Show help information
+  -v|--verbose                Enable more verbose and rich logging.
+  -c|--container <CONTAINER>  Glob pattern to filter containers. Without providing a pattern, notifiers will get attached to each running container.
 ```

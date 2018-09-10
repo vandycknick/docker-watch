@@ -15,7 +15,7 @@ namespace DockerWatch
         [Option(Description = "Enable more verbose and rich logging.", ShortName = "v")]
         public bool Verbose { get; set; } = false;
 
-        [Option(Description = "", ShortName = "c")]
+        [Option(Description = "Glob pattern to filter containers. Without providing a pattern, notifiers will get attached to each running container.", ShortName = "c")]
         public string Container { get; set; } = "*";
 
         public IHostBuilder CreateContainerMonitorHostBuilder()
