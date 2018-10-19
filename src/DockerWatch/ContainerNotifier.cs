@@ -6,10 +6,15 @@ namespace DockerWatch
 {
     public class ContainerNotifier : IDisposable
     {
+        private const string GITIGNORE = ".gitignore";
+
         private readonly INotifierAction _Notify;
         private readonly ILogger _logger;
+        private readonly GitIgnoreParser _gitignore;
 
         private FileSystemWatcher _watcher;
+
+        private PathInfo _hostPathInfo;
 
         public string ContainerID { get; private set; }
         public string HostPath { get; private set; }
@@ -23,6 +28,12 @@ namespace DockerWatch
 
             _logger = logger;
             _Notify = notify;
+
+            _hostPathInfo = ParsePath(HostPath);
+            _gitignore = GitIgnoreParser.Compile(GITIGNORE);
+
+            if (!File.Exists(GITIGNORE))
+                _logger.LogTrace($"No {GITIGNORE} file found in the current directory, no files will get ignored!");
 
             WatchForVolumeChanges();
         }
@@ -46,9 +57,19 @@ namespace DockerWatch
             return pathInfo;
         }
 
-        private string GetDockerPath(String source) {
-            var relativePath = source.Replace(HostPath, "").Replace("\\", "/");
-            return $"{ContainerPath}{relativePath}";
+        private string GetRelativePath(string source)
+        {
+            var path = source.Replace(HostPath, "").Replace("\\", "/");
+            if (path.StartsWith('/'))
+                return path.Substring(1);
+
+            return path;
+        }
+
+        private string GetDockerPath(string source)
+        {
+            var relativePath = GetRelativePath(source);
+            return $"{ContainerPath}/{relativePath}";
         }
 
         private DateTime _lastTimeFileWatcherEventRaised = DateTime.Now;
@@ -59,23 +80,33 @@ namespace DockerWatch
             // to sometimes be called twice. This is not an amazing workaround but
             // the best StackOverflow could provide me. 😝
             // https://stackoverflow.com/questions/449993/vb-net-filesystemwatcher-multiple-change-events/450046#450046
-            if( e.ChangeType == WatcherChangeTypes.Changed )
+            if (e.ChangeType == WatcherChangeTypes.Changed)
             {
-                if(DateTime.Now.Subtract (_lastTimeFileWatcherEventRaised).TotalMilliseconds < 500)
+                if (DateTime.Now.Subtract(_lastTimeFileWatcherEventRaised).TotalMilliseconds < 500)
                     return;
 
                 _logger.LogTrace($"File changed {e.FullPath} in mounted volume {ContainerPath}.");
 
                 _lastTimeFileWatcherEventRaised = DateTime.Now;
-                await _Notify.Notify(ContainerID, GetDockerPath(e.FullPath));
+
+                var path = e.FullPath;
+                var relativePath = GetRelativePath(path);
+                var containerPath = _hostPathInfo.IsFile ? ContainerPath : GetDockerPath(path);
+
+                if (!_gitignore.IsIgnored(relativePath))
+                {
+                    await _Notify.Notify(ContainerID, containerPath);
+                }
+                else
+                {
+                    _logger.LogTrace($"Filepath ({relativePath}) is ignored by {GITIGNORE}, not triggering notifiers!");
+                }
             }
         }
 
         private void WatchForVolumeChanges()
         {
-            var pathInfo = ParsePath(HostPath);
-
-            if (pathInfo.IsDirectory)
+            if (_hostPathInfo.IsDirectory)
             {
                 _watcher = new FileSystemWatcher()
                 {
@@ -84,7 +115,7 @@ namespace DockerWatch
                     IncludeSubdirectories = true,
                 };
             }
-            else if (pathInfo.IsFile)
+            else if (_hostPathInfo.IsFile)
             {
                 var fileInfo = new FileInfo(HostPath);
                 _watcher = new FileSystemWatcher()

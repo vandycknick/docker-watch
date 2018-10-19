@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DockerWatch.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DockerWatch
 {
@@ -24,12 +25,12 @@ namespace DockerWatch
         public ContainerMonitorHost(
             DockerService dockerService,
             IContainerNotifierFactory containerNotifierFactory,
-            ContainerMonitorHostOptions options,
+            IOptions<ContainerMonitorHostOptions> options,
             ILogger<ContainerMonitorHost> logger)
         {
             _dockerService = dockerService;
             _containerNotifierFactory = containerNotifierFactory;
-            _options = options;
+            _options = options.Value;
             _logger = logger;
 
             _containerNotifiers = new Dictionary<string, List<ContainerNotifier>>();

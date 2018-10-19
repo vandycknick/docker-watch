@@ -30,15 +30,14 @@ namespace DockerWatch
                 .ConfigureServices((context, services) =>
                 {
                     services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
+                    services.Configure<ContainerMonitorHostOptions>(options => options.ContainerGlob = Container);
 
                     services.AddHostedService<ContainerMonitorHost>();
-
-                    services.AddSingleton<ContainerMonitorHostOptions>(_ => new ContainerMonitorHostOptions {
-                        ContainerGlob = Container,
-                    });
                     services.AddSingleton<IContainerNotifierFactory, ContainerNotifierFactory>();
                     services.AddSingleton<INotifierAction, NotifierAction>();
+                    services.AddSingleton<IDockerService, DockerService>();
                     services.AddSingleton<DockerService>();
+                    services.AddSingleton(typeof(ILoggerAdapter<>), typeof(LoggerAdapter<>));
                 });
 
             return host;

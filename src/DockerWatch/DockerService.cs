@@ -25,21 +25,14 @@ namespace DockerWatch
 
     public class ContainerEventsMonitor : IDisposable
     {
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private CancellationTokenSource _cancellationTokenSource;
+
+        public ContainerEventsMonitor(CancellationTokenSource cancellationTokenSource)
+        {
+            _cancellationTokenSource = cancellationTokenSource;
+        }
+
         public Action<ContainerMonitorEvent> OnEvent { get; set; }
-
-        public void Trigger(ContainerMonitorEvent monitorEvent)
-        {
-            if (OnEvent != null)
-            {
-                OnEvent(monitorEvent);
-            }
-        }
-
-        public CancellationToken Token()
-        {
-            return _cancellationTokenSource.Token;
-        }
 
         public void Stop()
         {
@@ -54,7 +47,7 @@ namespace DockerWatch
         }
     }
 
-    public class DockerService
+    public class DockerService : IDockerService
     {
         const string DOCKER_URI = "npipe://./pipe/docker_engine";
 
@@ -110,7 +103,8 @@ namespace DockerWatch
 
         public ContainerEventsMonitor MonitorContainerEvents()
         {
-            var monitor = new ContainerEventsMonitor();
+            var tokenSource = new CancellationTokenSource();
+            var monitor = new ContainerEventsMonitor(tokenSource);
 
             var progress = new Progress<JSONMessage>(async message =>
             {
@@ -122,26 +116,32 @@ namespace DockerWatch
                     Container = container
                 };
 
-                monitor.Trigger(e);
+                monitor.OnEvent?.Invoke(e);
             });
 
             var filters = new Dictionary<string, IDictionary<string, bool>>()
             {
-                { "type", new Dictionary<string,bool>(){ { "container", true } }},
+                {
+                    "type", new Dictionary<string,bool>()
+                    {
+                        { "container", true }
+                    }
+                },
+                {
+                    "event", new Dictionary<string, bool>()
+                    {
+                        { "start", true },
+                        { "die", true},
+                    }
+                },
             };
-
-            filters.Add("event", new Dictionary<string, bool>()
-            {
-                { "start", true },
-                { "die", true},
-            });
 
             var eventParams = new ContainerEventsParameters()
             {
                 Filters = filters,
             };
 
-            _ = _Client.System.MonitorEventsAsync(eventParams, progress, monitor.Token());
+            _ = _Client.System.MonitorEventsAsync(eventParams, progress, tokenSource.Token);
 
             return monitor;
         }
@@ -154,8 +154,8 @@ namespace DockerWatch
 
             public void Dispose()
             {
-                Stdout.Dispose();
-                Stderr.Dispose();
+                Stdout?.Dispose();
+                Stderr?.Dispose();
             }
         }
 
@@ -166,7 +166,8 @@ namespace DockerWatch
 
             var response = await _Client.Containers.ExecCreateContainerAsync(
                     id: containerID,
-                    parameters: new ContainerExecCreateParameters {
+                    parameters: new ContainerExecCreateParameters
+                    {
                         AttachStderr = true,
                         AttachStdin = false,
                         AttachStdout = true,

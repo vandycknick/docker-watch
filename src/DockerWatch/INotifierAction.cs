@@ -4,6 +4,6 @@ namespace DockerWatch
 {
     public interface INotifierAction
     {
-         Task Notify(string containerId, string pathChanged);
+        Task Notify(string containerId, string pathChanged);
     }
 }
