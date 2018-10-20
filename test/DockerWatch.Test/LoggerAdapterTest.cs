@@ -32,13 +32,14 @@ namespace DockerWatch.Test
         [Fact]
         public void LogInformation_ShouldLogAnErrorMessage()
         {
-            // Assert
+            // Arrange
             var logger = new Mock<ILogger<MockService>>();
             var adapter = new LoggerAdapter<MockService>(logger.Object);
+
             // Act
             adapter.LogError("error");
 
-            // Arrange
+            // Assert
             logger.Verify(m => m.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
@@ -51,13 +52,14 @@ namespace DockerWatch.Test
         [Fact]
         public void LogInformation_ShouldLogTraceMessages()
         {
-            // Assert
+            // Arrange
             var logger = new Mock<ILogger<MockService>>();
             var adapter = new LoggerAdapter<MockService>(logger.Object);
+
             // Act
             adapter.LogTrace("trace");
 
-            // Arrange
+            // Assert
             logger.Verify(m => m.Log(
                 LogLevel.Trace,
                 It.IsAny<EventId>(),

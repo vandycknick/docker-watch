@@ -10,7 +10,7 @@ namespace DockerWatch
     [Command(Name = "docker-watch", FullName = "docker-watch", Description = "Notify docker containers about changes in mounted volumes.")]
     [VersionOptionFromMember(MemberName = nameof(GetVersion))]
     [HelpOption]
-    class Program
+    public class Program
     {
         [Option(Description = "Enable more verbose and rich logging.", ShortName = "v")]
         public bool Verbose { get; set; } = false;
@@ -18,9 +18,9 @@ namespace DockerWatch
         [Option(Description = "Glob pattern to filter containers. Without providing a pattern, notifiers will get attached to each running container.", ShortName = "c")]
         public string Container { get; set; } = "*";
 
-        public IHostBuilder CreateContainerMonitorHostBuilder()
+        public IHost CreateContainerMonitorHostBuilder(HostBuilder host)
         {
-            var host = new HostBuilder()
+            host
                 .UseConsoleLifetime()
                 .ConfigureLogging((logging) =>
                 {
@@ -40,11 +40,14 @@ namespace DockerWatch
                     services.AddSingleton(typeof(ILoggerAdapter<>), typeof(LoggerAdapter<>));
                 });
 
-            return host;
+            return host.Build();
         }
 
-        private Task OnExecuteAsync() =>
-            CreateContainerMonitorHostBuilder().Build().RunAsync();
+        public Task OnExecuteAsync()
+        {
+            var host = new HostBuilder();
+            return CreateContainerMonitorHostBuilder(host).RunAsync();
+        }
 
         public static Task Main(string[] args) =>
             CommandLineApplication.ExecuteAsync<Program>(args);

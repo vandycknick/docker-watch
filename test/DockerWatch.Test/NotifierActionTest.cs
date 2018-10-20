@@ -14,7 +14,7 @@ namespace DockerWatch.Test
         [Fact]
         public async Task Notify_ExecutesTheCorrectCommandInDocker()
         {
-            // Assert
+            // Arrange
             var containerId = "123";
             var path = "path/to/file.js";
             var cmd = new string[] { "sh", "-c", String.Format("chmod $(stat -c %a {0}) {0}", path) };
@@ -33,14 +33,14 @@ namespace DockerWatch.Test
             // Act
             await notifier.Notify(containerId, path);
 
-            // Arrange
+            // Assert
             docker.Verify(d => d.Exec(containerId, cmd));
         }
 
         [Fact]
         public async Task Notify_LogsVerboseInformationmessage()
         {
-            // Assert
+            // Arrange
             var containerId = "123";
             var path = "path/to/file.js";
 
@@ -56,14 +56,14 @@ namespace DockerWatch.Test
 
             await notifier.Notify(containerId, path);
 
-            // Arrange
+            // Assert
             logger.Verify(l => l.LogTrace($"Syncing change for {path} inside container ({containerId}."));
         }
 
         [Fact]
         public async Task Notify_LogsErrorMessageWhenExecReturnNonZeroResult()
         {
-            // Assert
+            // Arrange
             var error = "Some Error Message";
             var containerID = "123";
             var path = "path/to/file.js";
@@ -83,7 +83,7 @@ namespace DockerWatch.Test
             // Act
             await notifier.Notify(containerID, path);
 
-            // Arrange
+            // Assert
             logger.Verify(l => l.LogError($"Error syncing file in {containerID} for file {path}: {error}"));
         }
     }

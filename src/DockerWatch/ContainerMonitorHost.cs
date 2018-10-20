@@ -139,6 +139,7 @@ namespace DockerWatch
                 {
                     _logger.LogTrace($"Creating notifier for {container.Name} at {hostPath}");
                     var notifier = _containerNotifierFactory.Create(container.ID, hostPath, mount.Destination);
+                    notifier.Start();
                     n.Add(notifier);
                 }
                 catch (ArgumentException ex)
