@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 [CmdletBinding(PositionalBinding = $false)]
 param(
-    [ValidateSet('Debug', 'Release')]
-    $Configuration = $null,
-    [switch]
-    $IsOfficialBuild
+    [string]
+    $Output = "$PSScriptRoot/../artifacts/",
+    [ValidateSet("Debug", "Release")]
+    $Configuration = "Debug"
 )
 
 Set-StrictMode -Version 1
@@ -21,30 +21,19 @@ function exec([string]$_cmd) {
     }
 }
 
-#
-# Main
-#
-if (!$Configuration) {
-    $Configuration = if ($env:CI -or $IsOfficialBuild) { 'Release' } else { 'Debug' }
-}
-
 [string[]] $MSBuildArgs = @("-p:Configuration=$Configuration")
 
-if ($IsOfficialBuild) {
-	$MSBuildArgs += '-p:CI=true'
-}
-
-$artifacts = "$PSScriptRoot/../artifacts/"
-
-Remove-Item -Recurse $artifacts -ErrorAction Ignore
+Remove-Item -Recurse $Output -ErrorAction Ignore
 
 exec dotnet build @MSBuildArgs
 
 exec dotnet pack `
     --no-build `
-    -o $artifacts @MSBuildArgs
+    -o $Output @MSBuildArgs `
+    "./src/DockerWatch/DockerWatch.csproj"
 
 exec dotnet publish `
-    -r win-x64 @MSBuildArgs
+    -r win-x64 @MSBuildArgs `
+    "./src/DockerWatch/DockerWatch.csproj"
 
 Write-Host 'Done' -ForegroundColor Magenta

@@ -1,0 +1,20 @@
+pool:
+  vmImage: 'vs2017-win2016'
+
+variables:
+  BuildConfiguration: 'Release'
+
+steps:
+- powershell: dotnet restore
+  displayName: Restore Packages
+
+- powershell: dotnet test test/DockerWatch.Test/DockerWatch.Test.csproj
+  displayName: Run tests
+
+- powershell: scripts/build.ps1 -Configuration $(BuildConfiguration) -Output $(Build.ArtifactStagingDirectory)
+  displayName: Build solution
+
+- powershell: scripts/package.ps1 -Configuration $(BuildConfiguration) -Output $(Build.ArtifactStagingDirectory)
+  displayName: Package solution
+
+- task: PublishBuildArtifacts@1

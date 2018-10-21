@@ -1,20 +1,13 @@
 #!/usr/bin/env pwsh
 [CmdletBinding(PositionalBinding = $false)]
 param(
-    [ValidateSet('Debug', 'Release')]
-    $Configuration = $null,
-    [switch]
-    $IsOfficialBuild
+    [string]
+    $Output = "$PSScriptRoot/../artifacts/",
+    [ValidateSet("Debug", "Release")]
+    $Configuration = "Debug"
 )
 
 Add-Type -assembly "System.IO.Compression.FileSystem"
-
-#
-# Main
-#
-if (!$Configuration) {
-    $Configuration = if ($env:CI -or $IsOfficialBuild) { 'Release' } else { 'Debug' }
-}
 
 $rids = @(
     "win-x64"
@@ -25,21 +18,17 @@ $version = "$($manifest.Project.PropertyGroup.VersionPrefix)"
 
 $path = (Get-Location).Path
 
-if ((Test-Path -Path "$path/artifacts") -ne $True)
-{
+if ((Test-Path -Path "$Output") -ne $True) {
     Write-Host "Artifacts folder does not exist, creating it now ..." -ForegroundColor Cyan
-    New-Item "$path/artifacts" -ItemType Directory | Out-Null
+    New-Item "$Output" -ItemType Directory | Out-Null
 }
 
-foreach($id in $rids)
-{
-    $zipFile = "$path/artifacts/docker-watch.$id.$version.zip" 
+foreach ($id in $rids) {
+    $zipFile = "$Output/docker-watch.$id.$version.zip"
 
-    try
-    {
+    try {
 
-        if (Test-Path -Path $zipFile)
-        {
+        if (Test-Path -Path $zipFile) {
             Write-Host "Artifact '$zipfile' already exists, removing ..." -ForegroundColor Cyan
             Remove-Item -Path $zipFile
         }
@@ -51,8 +40,7 @@ foreach($id in $rids)
             $zipFile
         )
     }
-    catch
-    {
+    catch {
         Write-Error "Something went wrong!"
         exit 1
     }
