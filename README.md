@@ -1,9 +1,6 @@
 # Docker Watch
 
-[![AppVeyor build status][appveyor-badge]](https://ci.appveyor.com/project/nickvandyck/docker-watch/branch/master)
-
-[appveyor-badge]: https://img.shields.io/appveyor/ci/nickvandyck/docker-watch/master.svg?label=appveyor&style=flat-square
-
+[![Build Status](https://dev.azure.com/vandycknick/docker-watch/_apis/build/status/nickvdyck.docker-watch)](https://dev.azure.com/vandycknick/docker-watch/_build/latest?definitionId=2)
 [![NuGet][main-nuget-badge]][main-nuget]
 
 [main-nuget]: https://www.nuget.org/packages/docker-watch/
