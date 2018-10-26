@@ -4,12 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [v0.5.0]
+## [v0.5.0] - 2018-10-26
+### Added
+- Add parameter to disable filtering based on gitignore file
+
 ### Changed
-- Ignoring file syncs is now done by finding the closest git repo from the mounted windows volume.
+- Ignoring file syncs is now done by finding the closest git repository from the mounted windows volume.
 
 ### Fixed
-- File sync was unreliable because custom gitingore parsing behaviour was wrong.
+- File sync was unreliable because custom gitingore parsing behavior was wrong.
 
 ## [v0.4.0] - 2018-10-21
 ### Added

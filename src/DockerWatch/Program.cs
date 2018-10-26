@@ -18,6 +18,9 @@ namespace DockerWatch
         [Option(Description = "Glob pattern to filter containers. Without providing a pattern, notifiers will get attached to each running container.", ShortName = "c")]
         public string Container { get; set; } = "*";
 
+        [Option(Description = "Enable or disable filtering sync changes based on gitignore file", ShortName = "ni")]
+        public bool NoGitignore { get; set; } = false;
+
         public IHost CreateContainerMonitorHostBuilder(HostBuilder host)
         {
             host
@@ -40,7 +43,15 @@ namespace DockerWatch
 
                     services.AddTransient<IFileSystemWatcher, FileSystemWatcherWrapper>();
                     services.AddTransient<IContainerNotifier, ContainerNotifier>();
-                    services.AddTransient<IGitIgnoreParser, GitIgnoreParser>();
+
+                    if (NoGitignore)
+                    {
+                        services.AddTransient<IGitIgnoreParser, NoGitignoreParser>();
+                    }
+                    else
+                    {
+                        services.AddTransient<IGitIgnoreParser, GitIgnoreParser>();
+                    }
                 });
 
             return host.Build();

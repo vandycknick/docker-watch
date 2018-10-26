@@ -35,6 +35,12 @@ namespace DockerWatch
         {
             _gitRepository?.Dispose();
         }
+    }
 
+    internal class NoGitignoreParser : IGitIgnoreParser
+    {
+        public string Directory { get; set; }
+        public bool IsIgnored(string path) => false;
+        public void Dispose() => new object {};
     }
 }
