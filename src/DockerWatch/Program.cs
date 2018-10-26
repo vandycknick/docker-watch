@@ -33,11 +33,14 @@ namespace DockerWatch
                     services.Configure<ContainerMonitorHostOptions>(options => options.ContainerGlob = Container);
 
                     services.AddHostedService<ContainerMonitorHost>();
-                    services.AddSingleton<IContainerNotifierFactory, ContainerNotifierFactory>();
                     services.AddSingleton<INotifierAction, NotifierAction>();
                     services.AddSingleton<IDockerService, DockerService>();
                     services.AddSingleton<DockerService>();
                     services.AddSingleton(typeof(ILoggerAdapter<>), typeof(LoggerAdapter<>));
+
+                    services.AddTransient<IFileSystemWatcher, FileSystemWatcherWrapper>();
+                    services.AddTransient<IContainerNotifier, ContainerNotifier>();
+                    services.AddTransient<IGitIgnoreParser, GitIgnoreParser>();
                 });
 
             return host.Build();

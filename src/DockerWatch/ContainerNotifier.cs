@@ -3,50 +3,45 @@ using System.IO;
 
 namespace DockerWatch
 {
-    public class ContainerNotifier : IDisposable
+    public class ContainerNotifier : IContainerNotifier
     {
-        private const string GITIGNORE = ".gitignore";
 
         private readonly INotifierAction _notify;
         private readonly ILoggerAdapter<ContainerNotifier> _logger;
         private readonly IFileSystemWatcher _fileSystemWatcher;
-        private readonly GitIgnoreParser _gitignore;
+        private readonly IGitIgnoreParser _gitignore;
 
         private PathInfo _hostPathInfo;
 
-        public string ContainerID { get; private set; }
-        public string HostPath { get; private set; }
-        public string ContainerPath { get; private set; }
+        private string ContainerID { get; set; }
+        private string HostPath { get; set; }
+        private string ContainerPath { get; set; }
 
         public ContainerNotifier(
-            string containerID, string hostPath, string containerPath,
-            INotifierAction notify, ILoggerAdapter<ContainerNotifier> logger,
-            IFileSystemWatcher fileSystemWatcher
-        ) : this(notify, logger, fileSystemWatcher)
-        {
-            ContainerID = containerID;
-            HostPath = hostPath;
-            ContainerPath = containerPath;
-        }
-
-        public ContainerNotifier(INotifierAction notify, ILoggerAdapter<ContainerNotifier> logger, IFileSystemWatcher fileSystemWatcher)
+            INotifierAction notify,
+            ILoggerAdapter<ContainerNotifier> logger,
+            IFileSystemWatcher fileSystemWatcher,
+            IGitIgnoreParser gitignore
+        )
         {
             _logger = logger;
             _notify = notify;
             _fileSystemWatcher = fileSystemWatcher;
 
-            _gitignore = GitIgnoreParser.Compile(GITIGNORE);
-
-            if (!File.Exists(GITIGNORE))
-                _logger.LogTrace($"No {GITIGNORE} file found in the current directory, no files will get ignored!");
+            _gitignore = gitignore;
         }
 
-        public void Start()
+        public void Monitor(string containerID, string hostPath, string containerPath)
         {
+            ContainerID = containerID;
+            HostPath = hostPath;
+            ContainerPath = containerPath;
+
             _hostPathInfo = ParsePath(HostPath);
 
             if (_hostPathInfo.IsDirectory)
             {
+                _gitignore.Directory = HostPath;
                 _fileSystemWatcher.Path = HostPath;
                 _fileSystemWatcher.Filter = "*.*";
                 _fileSystemWatcher.IncludeSubdirectories = true;
@@ -67,13 +62,6 @@ namespace DockerWatch
             _fileSystemWatcher.EnableRaisingEvents = true;
         }
 
-        struct PathInfo
-        {
-            public bool IsValid;
-            public bool IsDirectory;
-            public bool IsFile;
-        }
-
         private DateTime _lastTimeFileWatcherEventRaised = DateTime.Now;
 
         private async void OnFileChanged(object sender, FileSystemEventArgs e)
@@ -91,8 +79,8 @@ namespace DockerWatch
                 _lastTimeFileWatcherEventRaised = DateTime.Now;
 
                 var path = e.FullPath;
-                var relativePath = GetRelativePath(path);
-                var containerPath = _hostPathInfo.IsFile ? ContainerPath : GetDockerPath(path);
+                var relativePath = Path.GetRelativePath(HostPath, path).Replace("\\", "/");
+                var containerPath = _hostPathInfo.IsFile ? ContainerPath : $"{ContainerPath}/{relativePath}";
 
                 if (!_gitignore.IsIgnored(relativePath))
                 {
@@ -100,36 +88,24 @@ namespace DockerWatch
                 }
                 else
                 {
-                    _logger.LogTrace($"Filepath ({relativePath}) is ignored by {GITIGNORE}, not triggering notifiers!");
+                    _logger.LogTrace($"Filepath ({relativePath}) is ignored, not triggering notifiers!");
                 }
             }
         }
 
+        struct PathInfo
+        {
+            public bool IsDirectory;
+            public bool IsFile;
+        }
+
         private PathInfo ParsePath(string path)
         {
-            var pathInfo = new PathInfo()
+            return new PathInfo()
             {
                 IsDirectory = Directory.Exists(path),
                 IsFile = File.Exists(path),
             };
-
-            pathInfo.IsValid = !pathInfo.IsDirectory && !pathInfo.IsFile;
-            return pathInfo;
-        }
-
-        private string GetRelativePath(string source)
-        {
-            var path = source.Replace(HostPath, "").Replace("\\", "/");
-            if (path.StartsWith('/'))
-                return path.Substring(1);
-
-            return path;
-        }
-
-        private string GetDockerPath(string source)
-        {
-            var relativePath = GetRelativePath(source);
-            return $"{ContainerPath}/{relativePath}";
         }
 
         public void Dispose()
@@ -140,6 +116,8 @@ namespace DockerWatch
                 _fileSystemWatcher.Changed -= OnFileChanged;
                 _fileSystemWatcher.Dispose();
             }
+
+            _gitignore.Dispose();
         }
     }
 }

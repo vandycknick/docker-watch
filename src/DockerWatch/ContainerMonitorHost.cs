@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DockerWatch.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,24 +17,25 @@ namespace DockerWatch
         static readonly Regex SOURCE_HOST = new Regex("^(?:/host_mnt)?/([a-zA-Z])/(.*)$", RegexOptions.Compiled);
 
         private readonly DockerService _dockerService;
-        private readonly IContainerNotifierFactory _containerNotifierFactory;
         private readonly ContainerMonitorHostOptions _options;
         private readonly ILogger _logger;
 
-        private Dictionary<string, List<ContainerNotifier>> _containerNotifiers;
+        private readonly IServiceProvider _provider;
+
+        private Dictionary<string, List<IContainerNotifier>> _containerNotifiers;
         private ContainerEventsMonitor _monitor;
         public ContainerMonitorHost(
             DockerService dockerService,
-            IContainerNotifierFactory containerNotifierFactory,
             IOptions<ContainerMonitorHostOptions> options,
-            ILogger<ContainerMonitorHost> logger)
+            ILogger<ContainerMonitorHost> logger,
+            IServiceProvider provider)
         {
             _dockerService = dockerService;
-            _containerNotifierFactory = containerNotifierFactory;
             _options = options.Value;
             _logger = logger;
+            _provider = provider;
 
-            _containerNotifiers = new Dictionary<string, List<ContainerNotifier>>();
+            _containerNotifiers = new Dictionary<string, List<IContainerNotifier>>();
         }
 
         private string ToWindowsPath(string dockerSourcePath)
@@ -105,7 +107,7 @@ namespace DockerWatch
 
         public void RemoveNotifiersForContainer(Container container)
         {
-            List<ContainerNotifier> notifiers;
+            List<IContainerNotifier> notifiers;
 
             if (_containerNotifiers.TryGetValue(container.ID, out notifiers))
             {
@@ -129,7 +131,7 @@ namespace DockerWatch
                 return;
             }
 
-            var n = new List<ContainerNotifier>();
+            var n = new List<IContainerNotifier>();
             var mounts = container.Mounts.Where(m => !String.IsNullOrEmpty(m.Source));
 
             foreach (var mount in mounts)
@@ -138,8 +140,8 @@ namespace DockerWatch
                 try
                 {
                     _logger.LogTrace($"Creating notifier for {container.Name} at {hostPath}");
-                    var notifier = _containerNotifierFactory.Create(container.ID, hostPath, mount.Destination);
-                    notifier.Start();
+                    var notifier = _provider.GetRequiredService<IContainerNotifier>();
+                    notifier.Monitor(container.ID, hostPath, mount.Destination);
                     n.Add(notifier);
                 }
                 catch (ArgumentException ex)
